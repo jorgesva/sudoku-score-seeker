@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,18 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				sudoku: {
+					'board': '#ffffff',
+					'board-border': '#333333',
+					'cell-border': '#999999',
+					'section-border': '#333333',
+					'highlight': 'rgba(79, 129, 189, 0.2)',
+					'selected': 'rgba(79, 129, 189, 0.5)',
+					'initial': '#333333',
+					'user-input': '#0077cc',
+					'error': '#ea384c',
+					'success': '#4caf50'
 				}
 			},
 			borderRadius: {
@@ -84,11 +97,16 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'number-appear': {
+					'0%': { transform: 'scale(0.5)', opacity: '0' },
+					'100%': { transform: 'scale(1)', opacity: '1' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'number-appear': 'number-appear 0.2s ease-out'
 			}
 		}
 	},
