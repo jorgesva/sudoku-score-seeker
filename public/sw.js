@@ -4,11 +4,11 @@ const CACHE_NAME = 'sudoku-score-seeker-v1';
 
 // Files to cache
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/pwa-icon-192.png',
-  '/pwa-icon-512.png'
+  './',
+  './index.html',
+  './manifest.json',
+  './pwa-icon-192.png',
+  './pwa-icon-512.png'
 ];
 
 // Install service worker and cache assets
