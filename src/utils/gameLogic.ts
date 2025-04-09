@@ -1,7 +1,9 @@
+
 import { Difficulty, calculateScore, generateSudoku, isGridComplete, isCellValid } from './sudokuGenerator';
 
 export type SudokuGrid = (number | null)[][];
 export type CellPosition = [number, number];
+export type CellNotes = Record<string, number[]>;
 
 export interface GameState {
   currentGrid: SudokuGrid;
@@ -12,6 +14,8 @@ export interface GameState {
   endTime: number | null;
   isComplete: boolean;
   errors: Record<string, boolean>;
+  notes: CellNotes;
+  isNoteMode: boolean;
 }
 
 // Initialize a new game with the selected difficulty
@@ -26,7 +30,9 @@ export const initializeGame = (difficulty: Difficulty): GameState => {
     startTime: Date.now(),
     endTime: null,
     isComplete: false,
-    errors: {}
+    errors: {},
+    notes: {},
+    isNoteMode: false
   };
 };
 
@@ -47,11 +53,20 @@ export const inputNumber = (state: GameState, number: number): GameState => {
   // Don't allow modifying original cells
   if (state.originalGrid[row][col] !== null) return state;
   
+  // Handle note mode
+  if (state.isNoteMode) {
+    return toggleNoteForCell(state, row, col, number);
+  }
+  
   // Create a deep copy of the current grid
   const newGrid = state.currentGrid.map(row => [...row]);
   
   // Update the cell
   newGrid[row][col] = number;
+  
+  // Clear notes for this cell
+  const newNotes = { ...state.notes };
+  delete newNotes[`${row}-${col}`];
   
   // Check if this new input is valid
   const valid = isCellValid(newGrid, row, col, state.originalGrid);
@@ -73,8 +88,43 @@ export const inputNumber = (state: GameState, number: number): GameState => {
     ...state,
     currentGrid: newGrid,
     errors: newErrors,
+    notes: newNotes,
     isComplete: complete,
     endTime: complete ? Date.now() : null
+  };
+};
+
+// Toggle note mode
+export const toggleNoteMode = (state: GameState): GameState => {
+  return {
+    ...state,
+    isNoteMode: !state.isNoteMode
+  };
+};
+
+// Toggle a note for a specific cell
+export const toggleNoteForCell = (state: GameState, row: number, col: number, number: number): GameState => {
+  if (state.currentGrid[row][col] !== null) return state;
+  
+  const cellKey = `${row}-${col}`;
+  const currentNotes = state.notes[cellKey] || [];
+  
+  // Toggle the note
+  const newNotes = { ...state.notes };
+  if (currentNotes.includes(number)) {
+    // Remove the note
+    newNotes[cellKey] = currentNotes.filter(n => n !== number);
+    if (newNotes[cellKey].length === 0) {
+      delete newNotes[cellKey];
+    }
+  } else {
+    // Add the note
+    newNotes[cellKey] = [...currentNotes, number].sort((a, b) => a - b);
+  }
+  
+  return {
+    ...state,
+    notes: newNotes
   };
 };
 
@@ -93,6 +143,12 @@ export const clearCell = (state: GameState): GameState => {
   // Clear the cell
   newGrid[row][col] = null;
   
+  // If in note mode, also clear notes for this cell
+  const newNotes = { ...state.notes };
+  if (state.isNoteMode) {
+    delete newNotes[`${row}-${col}`];
+  }
+  
   // Remove any errors for this cell
   const newErrors = { ...state.errors };
   delete newErrors[`${row}-${col}`];
@@ -100,6 +156,7 @@ export const clearCell = (state: GameState): GameState => {
   return {
     ...state,
     currentGrid: newGrid,
+    notes: newNotes,
     errors: newErrors
   };
 };
@@ -125,11 +182,13 @@ export const formatTime = (seconds: number): string => {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
-// Check if a cell is in the same row, column, or box as the selected cell
+// Check if a cell should be highlighted
 export const shouldHighlightCell = (
   row: number, 
   col: number, 
-  selectedCell: CellPosition | null
+  selectedCell: CellPosition | null,
+  currentGrid: SudokuGrid,
+  selectedValue: number | null
 ): boolean => {
   if (!selectedCell) return false;
   
@@ -144,7 +203,30 @@ export const shouldHighlightCell = (
   const selectedBoxRow = Math.floor(selectedRow / 3);
   const selectedBoxCol = Math.floor(selectedCol / 3);
   
-  return boxRow === selectedBoxRow && boxCol === selectedBoxCol;
+  const sameBox = boxRow === selectedBoxRow && boxCol === selectedBoxCol;
+  
+  // Same number as selected cell
+  const selectedCellValue = currentGrid[selectedRow][selectedCol];
+  const sameNumber = selectedCellValue !== null && currentGrid[row][col] === selectedCellValue;
+  
+  // Matching number provided in selectedValue
+  const matchesSelectedValue = selectedValue !== null && currentGrid[row][col] === selectedValue;
+  
+  return sameBox || sameNumber || matchesSelectedValue;
+};
+
+// Check if a note number should be highlighted
+export const shouldHighlightNote = (
+  noteNumber: number,
+  selectedCell: CellPosition | null,
+  currentGrid: SudokuGrid
+): boolean => {
+  if (!selectedCell) return false;
+  
+  const [selectedRow, selectedCol] = selectedCell;
+  const selectedValue = currentGrid[selectedRow][selectedCol];
+  
+  return selectedValue !== null && selectedValue === noteNumber;
 };
 
 // Local storage keys
